@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+
+<script>
+// ===== DRAKSYON ADVANCED PROTECTION SYSTEM v3.0 =====
+(function(){
+  // --- Anti DevTools (multiple detection methods) ---
+  var _dc = 0;
+  var _th = 160;
+  setInterval(function(){
+    var t0 = performance.now();
+    debugger;
+    if(performance.now()-t0>100){
+      document.documentElement.innerHTML='';
+      window.location.href='about:blank';
+    }
+  },1500);
+
+  // Detect devtools via window size diff
+  var _devOpen = false;
+  var _checkDev = function(){
+    var w = window.outerWidth - window.innerWidth > _th;
+    var h = window.outerHeight - window.innerHeight > _th;
+    if(w||h){
+      if(!_devOpen){
+        _devOpen=true;
+        document.documentElement.innerHTML='<div style="background:#000;color:#f00;height:100vh;display:flex;align-items:center;justify-content:center;font-size:24px;font-family:monospace">ACESSO BLOQUEADO</div>';
+      }
+    }
+  };
+  setInterval(_checkDev,800);
+
+  // Detect via console.log toString trick
+  var _el = new Image();
+  Object.defineProperty(_el,'id',{get:function(){
+    document.documentElement.innerHTML='';
+    window.location.href='about:blank';
+  }});
+  setInterval(function(){console.log('%c',_el)},2000);
+
+  // --- Block all keyboard shortcuts ---
+  document.addEventListener('keydown',function(e){
+    // F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+H
+    if(e.keyCode===123||
+      (e.ctrlKey&&e.shiftKey&&(e.keyCode===73||e.keyCode===74||e.keyCode===67))||
+      (e.ctrlKey&&(e.keyCode===85||e.keyCode===83||e.keyCode===80||e.keyCode===72))||
+      (e.metaKey&&e.altKey&&(e.keyCode===73||e.keyCode===74||e.keyCode===67))){
+      e.preventDefault();e.stopPropagation();return false;
+    }
+  },true);
+
+  // --- Block right-click / context menu ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();return false},true);
+
+  // --- Block text selection ---
+  document.addEventListener('selectstart',function(e){e.preventDefault();return false},true);
+
+  // --- Block copy/cut/paste ---
+  ['copy','cut','paste'].forEach(function(evt){
+    document.addEventListener(evt,function(e){e.preventDefault();return false},true);
+  });
+
+  // --- Block drag ---
+  document.addEventListener('dragstart',function(e){e.preventDefault();return false},true);
+
+  // --- Block view-source protocol ---
+  if(window.location.protocol==='view-source:'){
+    window.location.href='about:blank';
+  }
+
+  // --- Block iframe embedding ---
+  if(window.self!==window.top){
+    try{window.top.location=window.self.location}catch(e){
+      document.documentElement.innerHTML='';
+    }
+  }
+
+  // --- Anti console.log override ---
+  var _origLog = console.log;
+  Object.defineProperty(console,'log',{
+    get:function(){return function(){}},
+    set:function(){}
+  });
+  Object.defineProperty(console,'warn',{get:function(){return function(){}},set:function(){}});
+  Object.defineProperty(console,'info',{get:function(){return function(){}},set:function(){}});
+  Object.defineProperty(console,'error',{get:function(){return function(){}},set:function(){}});
+  Object.defineProperty(console,'table',{get:function(){return function(){}},set:function(){}});
+  Object.defineProperty(console,'dir',{get:function(){return function(){}},set:function(){}});
+  Object.defineProperty(console,'clear',{get:function(){return function(){}},set:function(){}});
+
+  // --- Disable source map fetching ---
+  try{
+    Object.defineProperty(window,'__sourceMap',{value:undefined,writable:false});
+  }catch(e){}
+
+  // --- CSS protection ---
+  var s=document.createElement('style');
+  s.textContent='*{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}';
+  document.head.appendChild(s);
+
+  // --- Mutation observer: prevent DOM tampering ---
+  var _origHTML = null;
+  window.addEventListener('load',function(){
+    _origHTML = document.body.innerHTML;
+    var obs = new MutationObserver(function(mutations){
+      // Allow normal app mutations but detect mass removal (DevTools editing)
+      mutations.forEach(function(m){
+        if(m.removedNodes.length > 5){
+          // Potential tampering - could reload
+        }
+      });
+    });
+    obs.observe(document.body,{childList:true,subtree:true,attributes:true});
+  });
+
+  // --- Detect Eruda / vConsole / other mobile debuggers ---
+  setInterval(function(){
+    if(window.eruda||window.VConsole||window.__REACT_DEVTOOLS_GLOBAL_HOOK__||
+       document.querySelector('#eruda')||document.querySelector('.vc-panel')){
+      document.documentElement.innerHTML='';
+      window.location.href='about:blank';
+    }
+  },1000);
+
+  // --- Block print ---
+  window.addEventListener('beforeprint',function(e){
+    document.body.style.display='none';
+  });
+  window.addEventListener('afterprint',function(e){
+    document.body.style.display='';
+  });
+
+  // --- Obfuscate page source on access ---
+  Object.defineProperty(document,'documentElement',{
+    configurable:false
+  });
+
+})();
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draksyon - Player</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+            background:#0d0d0f;
+            color:#fff;
+            -webkit-font-smoothing:antialiased;
+            overflow-y:auto;
+            padding-top:56px;
+            padding-bottom:20px;
+        }
+        ::-webkit-scrollbar{width:5px;height:6px}
+        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:999px}
+        ::-webkit-scrollbar-track{background:transparent}
+
+        /* ── Header ── */
+        .otk-header-fixed{
+            position:fixed;top:0;left:0;right:0;height:56px;
+            display:flex;align-items:center;justify-content:space-between;
+            padding:0 14px;
+            background:rgba(13,13,15,0.92);
+            backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+            border-bottom:1px solid rgba(255,255,255,0.04);
+            z-index:100;
+        }
+        .header-inner{
+            width:100%;max-width:1200px;margin:0 auto;
+            display:flex;align-items:center;gap:10px;
+        }
+        .icon-btn{background:transparent;border:none;color:#fff;cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+        .icon-btn:hover{opacity:.7}
+        .header-title-text{
+            flex:1;font-size:14px;color:#9aa0a6;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            text-align:center;
+        }
+        .server-indicator{font-size:10px;color:#5B7FFF;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(37,75,255,0.1);border:1px solid rgba(37,75,255,0.2);white-space:nowrap;flex-shrink:0}
+
+        /* ── Drawer ── */
+        .drawer-overlay{
+            position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:150;
+            opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s;
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        }
+        .drawer-overlay.open{opacity:1;visibility:visible}
+        .drawer{
+            position:fixed;top:0;left:0;bottom:0;width:270px;max-width:80vw;
+            background:#111113;z-index:200;
+            transform:translateX(-100%);
+            transition:transform .35s cubic-bezier(.4,0,.2,1);
+            display:flex;flex-direction:column;
+            border-right:1px solid rgba(255,255,255,0.06);
+            overflow-y:auto;
+        }
+        .drawer.open{transform:translateX(0)}
+        .drawer-top{
+            padding:20px 16px 14px;
+            display:flex;align-items:center;justify-content:space-between;
+            border-bottom:1px solid rgba(255,255,255,0.06);
+        }
+        .drawer-brand-row{display:flex;align-items:center;gap:10px}
+        .drawer-brand-logo{
+            width:34px;height:34px;border-radius:8px;
+            background:linear-gradient(135deg,#254BFF,#3A56F6);
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 3px 10px rgba(37,75,255,0.3);overflow:hidden;
+        }
+        .drawer-brand-logo img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+        .drawer-brand-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px}
+        .drawer-close-btn{background:none;border:none;color:#666;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .2s}
+        .drawer-close-btn:hover{color:#fff}
+        .drawer-nav{list-style:none;padding:8px 8px 0}
+        .drawer-nav-item{
+            display:flex;align-items:center;gap:12px;
+            padding:11px 12px;border-radius:8px;cursor:pointer;
+            color:#888;font-size:14px;font-weight:500;
+            transition:all .2s;border:none;background:none;width:100%;text-align:left;text-decoration:none;
+        }
+        .drawer-nav-item:hover{background:rgba(255,255,255,0.04);color:#ccc}
+        .drawer-nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:.6}
+        .drawer-divider{height:1px;background:rgba(255,255,255,0.05);margin:6px 16px}
+        .drawer-section-label{padding:10px 16px 4px;font-size:11px;font-weight:700;color:#555;letter-spacing:1px;text-transform:uppercase}
+        .server-option{
+            display:flex;align-items:center;gap:12px;
+            padding:10px 12px;border-radius:8px;cursor:pointer;
+            color:#888;font-size:13px;font-weight:500;
+            transition:all .2s;border:none;background:none;width:100%;text-align:left;
+        }
+        .server-option:hover{background:rgba(255,255,255,0.04);color:#ccc}
+        .server-option.active{background:rgba(37,75,255,0.12);color:#fff}
+        .server-radio{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .2s}
+        .server-option.active .server-radio{border-color:#254BFF}
+        .server-radio-dot{width:8px;height:8px;border-radius:50%;background:#254BFF;display:none}
+        .server-option.active .server-radio-dot{display:block}
+        .server-name{flex:1}
+        .server-badge{font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(37,75,255,0.15);color:#5B7FFF;font-weight:600}
+        .drawer-footer{margin-top:auto;padding:14px 16px;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px}
+        .drawer-avatar{width:35px;height:35px;border-radius:50%;background:#1a1a1e;background-size:cover;background-position:center;flex-shrink:0}
+        .drawer-user-info{display:flex;flex-direction:column;gap:1px;flex:1}
+        .drawer-user-name{font-size:14px;font-weight:600;color:#ddd}
+        .drawer-user-role{font-size:11px;color:#555}
+
+        /* ── Info Card (contains player + buttons) ── */
+        .info-card{
+            margin:14px;
+            padding:0;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:16px;
+            overflow:hidden;
+        }
+        .info-card-body{
+            padding:18px 18px 22px;
+        }
+        .info-card-title{
+            font-size:17px;font-weight:600;color:#fff;
+            line-height:1.4;margin-bottom:10px;
+            text-align:center;
+        }
+        .info-card-desc{
+            font-size:13px;color:#9aa0a6;line-height:1.7;
+            margin-bottom:18px;
+            display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+        }
+
+        /* ── Video inside card ── */
+        .video-wrapper{
+            position:relative;width:100%;padding-top:56.25%;
+            background:#000;
+            border-radius:16px 16px 0 0;
+        }
+        .video-wrapper video,
+        .video-wrapper iframe{
+            position:absolute;top:0;left:0;width:100%;height:100%;border:none;
+            border-radius:16px 16px 0 0;
+        }
+
+        /* ── Buttons ── */
+        .action-btn{
+            display:flex;align-items:center;justify-content:center;gap:10px;
+            width:100%;padding:14px;border-radius:12px;
+            font-size:15px;font-weight:600;cursor:pointer;
+            transition:all .3s;text-decoration:none;
+            margin-bottom:10px;
+        }
+        .action-btn:last-child{margin-bottom:0}
+        .action-btn svg{width:20px;height:20px;flex-shrink:0}
+        .btn-episodes{
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.1);
+            color:#fff;
+        }
+        .btn-episodes:hover{background:rgba(255,255,255,0.08)}
+        .btn-next{
+            background:linear-gradient(90deg,#254BFF,#3A56F6);
+            border:none;color:#fff;
+            box-shadow:0 6px 18px rgba(37,75,255,0.3);
+        }
+        .btn-next:hover{box-shadow:0 8px 24px rgba(37,75,255,0.5)}
+        .btn-next:disabled,.btn-next.disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+        /* ── Quality ── */
+        .quality-section{
+            margin-top:14px;
+        }
+        .quality-label{font-size:12px;color:#555;margin-bottom:8px;font-weight:700;letter-spacing:.5px}
+        .quality-btns{display:flex;gap:8px;flex-wrap:wrap}
+        .quality-btn{
+            padding:8px 16px;border-radius:10px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            color:#9aa0a6;font-size:12px;font-weight:600;
+            cursor:pointer;transition:all .2s;
+        }
+        .quality-btn:hover{border-color:rgba(37,75,255,0.3);color:#ccc}
+        .quality-btn.active{background:rgba(37,75,255,0.12);border-color:rgba(37,75,255,0.35);color:#fff}
+
+        /* ── Episode List Modal ── */
+        .ep-modal-overlay{
+            position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;
+            opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;
+            display:flex;align-items:flex-end;justify-content:center;
+        }
+        .ep-modal-overlay.open{opacity:1;visibility:visible}
+        .ep-modal{
+            width:100%;max-width:500px;max-height:75vh;
+            background:#18181b;border-radius:16px 16px 0 0;
+            display:flex;flex-direction:column;
+            transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+        }
+        .ep-modal-overlay.open .ep-modal{transform:translateY(0)}
+        .ep-modal-header{
+            padding:16px 18px;display:flex;align-items:center;justify-content:space-between;
+            border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;
+        }
+        .ep-modal-title{font-size:16px;font-weight:600;color:#fff}
+        .ep-modal-close{background:none;border:none;color:#666;cursor:pointer;padding:4px;display:flex;align-items:center}
+        .ep-modal-close:hover{color:#fff}
+        .ep-modal-search{padding:10px 18px;flex-shrink:0}
+        .ep-search-input{
+            width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+            padding:10px 14px;border-radius:10px;color:#fff;font-size:14px;outline:none;
+        }
+        .ep-search-input:focus{border-color:rgba(37,75,255,0.4)}
+        .ep-modal-list{flex:1;overflow-y:auto;padding:8px 10px 20px}
+        .ep-item{
+            display:flex;align-items:center;gap:12px;
+            padding:12px 10px;border-radius:10px;
+            color:#9aa0a6;font-size:14px;font-weight:500;
+            cursor:pointer;transition:all .2s;text-decoration:none;
+        }
+        .ep-item:hover{background:rgba(255,255,255,0.04);color:#ccc}
+        .ep-item.active{background:rgba(37,75,255,0.12);color:#fff}
+        .ep-item-num{
+            width:32px;height:32px;border-radius:8px;
+            background:rgba(255,255,255,0.05);
+            display:flex;align-items:center;justify-content:center;
+            font-size:12px;font-weight:700;color:#666;flex-shrink:0;
+        }
+        .ep-item.active .ep-item-num{background:rgba(37,75,255,0.2);color:#5B7FFF}
+
+        /* ── Loading / Error ── */
+        .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;color:#9aa0a6;font-size:15px;gap:12px}
+        .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.06);border-top-color:#254BFF;border-radius:50%;animation:spin .8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .content-wrapper{display:none}
+        .error-box{
+            max-width:400px;margin:40px auto;padding:30px;text-align:center;
+            background:rgba(255,50,50,0.05);border:1px solid rgba(255,50,50,0.15);border-radius:16px;
+        }
+        .error-box h3{font-size:16px;color:#ff5555;margin-bottom:8px}
+        .error-box p{font-size:13px;color:#888}
+
+        @media(min-width:768px){
+            .info-card{max-width:600px;margin-left:auto;margin-right:auto}
+            .info-card-title{font-size:20px}
+        }
+    
+/* ── Entrance Animations ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,75,255,0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(37,75,255,0.15); }
+}
+.animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+.animate-fade-up { animation: fadeInUp 0.6s ease forwards; }
+.animate-slide-left { animation: slideInLeft 0.5s ease forwards; }
+.animate-scale-in { animation: scaleIn 0.4s ease forwards; }
+.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+.stagger-2 { animation-delay: 0.1s; opacity: 0; }
+.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+.stagger-4 { animation-delay: 0.2s; opacity: 0; }
+.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* Skeleton shimmer for loading */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 10px;
+}
+
+/* Better maintenance/error dialog */
+.drk-dialog-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+.drk-dialog {
+  width: 90%; max-width: 380px;
+  background: #1a1a1f;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+  animation: scaleIn 0.35s cubic-bezier(.4,0,.2,1);
+}
+.drk-dialog-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(37,75,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+}
+.drk-dialog-icon.error { background: rgba(239,68,68,0.12); }
+.drk-dialog-icon.warning { background: rgba(251,191,36,0.12); }
+.drk-dialog-icon.maintenance { background: rgba(37,75,255,0.12); }
+.drk-dialog-title {
+  font-size: 18px; font-weight: 700; color: #fff;
+  margin-bottom: 8px;
+}
+.drk-dialog-text {
+  font-size: 14px; color: #888; line-height: 1.6;
+  margin-bottom: 24px;
+}
+.drk-dialog-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s;
+}
+.drk-dialog-btn.primary {
+  background: linear-gradient(90deg, #254BFF, #3A56F6);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(37,75,255,0.3);
+}
+.drk-dialog-btn.primary:hover { box-shadow: 0 8px 24px rgba(37,75,255,0.5); }
+.drk-dialog-btn.secondary {
+  background: rgba(255,255,255,0.06);
+  color: #aaa; border: 1px solid rgba(255,255,255,0.08);
+  margin-top: 8px;
+}
+.drk-dialog-btn.secondary:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* Smooth card hover */
+.premium-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.premium-card:active { transform: scale(0.97); }
+
+/* Ripple touch effect */
+.touch-ripple { position: relative; overflow: hidden; }
+.touch-ripple::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(37,75,255,0.15) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.4s;
+}
+.touch-ripple:active::after { opacity: 1; }
+
+/* Safe area for notched phones */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Landscape fullscreen player optimization */
+@media (orientation: landscape) {
+  body { padding-top: 0 !important; padding-bottom: 0 !important; }
+  .otk-header-fixed { display: none !important; }
+  .info-card { margin: 0; border-radius: 0; }
+  .video-wrapper {
+    width: 100vw !important;
+    height: 100vh !important;
+    padding-top: 0 !important;
+    position: fixed; top: 0; left: 0; z-index: 500;
+    border-radius: 0 !important;
+  }
+  .video-wrapper video,
+  .video-wrapper iframe {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    object-fit: contain;
+  }
+  .content-wrapper > *:not(.info-card:first-child) { display: none; }
+  .info-card-body { display: none; }
+  /* Show a small exit button */
+  .landscape-exit-btn { display: flex !important; }
+}
+@media (orientation: portrait) {
+  .landscape-exit-btn { display: none !important; }
+}
+
+/* Landscape exit button */
+.landscape-exit-btn {
+  display: none;
+  position: fixed; top: 12px; left: 12px; z-index: 600;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15);
+  align-items: center; justify-content: center;
+  color: #fff; cursor: pointer;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease 0.5s both;
+}
+.landscape-exit-btn:hover { background: rgba(0,0,0,0.8); }
+
+/* Player entry animation */
+.content-wrapper { animation: fadeIn 0.5s ease; }
+.info-card { animation: fadeInUp 0.5s ease 0.1s both; }
+
+</style>
+</head>
+<body>
+
+    <!-- Drawer Overlay -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+
+    <!-- Drawer -->
+    <nav class="drawer" id="drawer">
+        <div class="drawer-top">
+            <div class="drawer-brand-row">
+                <div class="drawer-brand-logo">
+                    <img src="https://i.pinimg.com/736x/0d/af/79/0daf79ba1549f23b9caf058155a4bd42.jpg" alt="Logo">
+                </div>
+                <span class="drawer-brand-title">DRAKSYON</span>
+            </div>
+            <button class="drawer-close-btn" id="drawer-close" aria-label="Fechar menu">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <ul class="drawer-nav">
+            <li><a class="drawer-nav-item" href="index.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 00-1-1h-4a1 1 0 00-1 1v8"/><path d="M3 10a2 2 0 01.709-1.528l7-5.999a2 2 0 012.582 0l7 5.999A2 2 0 0121 10v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                <span>Home</span>
+            </a></li>
+            <li><a class="drawer-nav-item" href="index.html?tab=dublados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
+                <span>Dublados</span>
+            </a></li>
+            <li><a class="drawer-nav-item" href="index.html?tab=legendados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4"/><path d="M15 15h2"/><path d="M7 11h2"/><path d="M13 11h4"/></svg>
+                <span>Legendados</span>
+            </a></li>
+        </ul>
+        <div class="drawer-divider"></div>
+        <div class="drawer-section-label">Selecionar Servidor</div>
+        <ul class="drawer-nav" id="server-list">
+            <li><button class="server-option active" data-server="s1">
+                <div class="server-radio"><div class="server-radio-dot"></div></div>
+                <span class="server-name">AnimeFire</span>
+                <span class="server-badge">S1</span>
+            </button></li>
+            <li><button class="server-option" data-server="s2">
+                <div class="server-radio"><div class="server-radio-dot"></div></div>
+                <span class="server-name">Animes Online</span>
+                <span class="server-badge">S2</span>
+            </button></li>
+        </ul>
+        <div class="drawer-footer">
+            <div class="drawer-avatar" style="background-image:url('https://i.pinimg.com/736x/2b/44/6b/2b446b5817e8a3b1161ceebb17e2b376.jpg')"></div>
+            <div class="drawer-user-info">
+                <span class="drawer-user-name">Visitante</span>
+                <span class="drawer-user-role">Convidado</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="otk-header-fixed">
+        <div class="header-inner">
+            <button class="icon-btn" id="open-drawer" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <span class="header-title-text" id="header-title">Carregando...</span>
+            <span class="server-indicator" id="server-indicator">S1</span>
+        </div>
+    </header>
+
+    <!-- Loading -->
+    <div class="loading-screen" id="loading">
+        <div class="spinner"></div>
+        Carregando player...
+    </div>
+
+    <!-- Content -->
+    <div class="content-wrapper" id="conteudo">
+        <!-- Info Card with Player inside -->
+        <div class="info-card">
+            <!-- Video inside card -->
+            <div class="video-wrapper" id="video-wrapper">
+                <video id="main-video" controls preload="auto" autoplay poster="" style="background:#000;">
+                    Seu navegador não suporta o player de vídeo.
+                </video>
+            </div>
+
+            <div class="info-card-body">
+                <h2 class="info-card-title" id="ep-title"></h2>
+                <p class="info-card-desc" id="sinopse">Assista ao episódio totalmente grátis em HD. Dublado e legendado, sem anúncios e com qualidade máxima.</p>
+
+                <!-- Quality inside card -->
+                <div class="quality-section" id="quality-section" style="display:none">
+                    <div class="quality-label">QUALIDADE</div>
+                    <div class="quality-btns" id="quality-btns"></div>
+                </div>
+
+                <div style="margin-top:18px">
+                    <button class="action-btn btn-episodes" id="btn-episodes" style="display:none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        Lista de Episódios
+                    </button>
+
+                    <a class="action-btn btn-next" id="btn-next" href="#">
+                        Próximo
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Episode List Modal -->
+    <div class="ep-modal-overlay" id="ep-modal-overlay">
+        <div class="ep-modal">
+            <div class="ep-modal-header">
+                <span class="ep-modal-title">Episódios</span>
+                <button class="ep-modal-close" id="ep-modal-close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="ep-modal-search">
+                <input class="ep-search-input" id="ep-search" placeholder="Buscar episódio..." />
+            </div>
+            <div class="ep-modal-list" id="ep-modal-list"></div>
+        </div>
+    </div>
+
+    <script>
+    var API_BASE = 'http://127.0.0.1:3000';
+    var LS_SERVER = 'draksyon_server_v1';
+    var currentServer = localStorage.getItem(LS_SERVER) || 's1';
+
+    function getApiPrefix() { return currentServer === 's2' ? '/api/s2' : '/api'; }
+
+    var indicator = document.getElementById('server-indicator');
+    if (currentServer === 's2') { indicator.textContent = 'S2'; indicator.title = 'Animes Online'; }
+    else { indicator.textContent = 'S1'; indicator.title = 'AnimeFire'; }
+
+    document.querySelectorAll('.server-option').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.server === currentServer);
+        btn.addEventListener('click', function() {
+            currentServer = btn.dataset.server;
+            localStorage.setItem(LS_SERVER, currentServer);
+            location.reload();
+        });
+    });
+
+    var drawer = document.getElementById('drawer');
+    var overlay = document.getElementById('drawer-overlay');
+    document.getElementById('open-drawer').addEventListener('click', function() {
+        drawer.classList.add('open'); overlay.classList.add('open');
+    });
+    function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('open'); }
+    document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    var epOverlay = document.getElementById('ep-modal-overlay');
+    document.getElementById('btn-episodes').addEventListener('click', function() { epOverlay.classList.add('open'); });
+    document.getElementById('ep-modal-close').addEventListener('click', function() { epOverlay.classList.remove('open'); });
+    epOverlay.addEventListener('click', function(e) { if (e.target === epOverlay) epOverlay.classList.remove('open'); });
+
+    document.getElementById('ep-search').addEventListener('input', function() {
+        var q = this.value.toLowerCase();
+        document.querySelectorAll('#ep-modal-list .ep-item').forEach(function(item) {
+            item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    var animeSlug = params.get('anime') || '';
+    var epLink = params.get('ep') || '';
+    var epNome = decodeURIComponent(params.get('nome') || 'Episódio');
+    var epIndex = parseInt(params.get('idx') || '0', 10);
+
+    document.getElementById('header-title').textContent = epNome;
+
+    var allEpisodes = [];
+    var animeData = null;
+
+    async function carregarPlayer() {
+        if (!epLink) {
+            mostrarErro('Nenhum episódio selecionado.', 'Volte e selecione um episódio para assistir.');
+            return;
+        }
+        try {
+            if (animeSlug) {
+                try {
+                    var resD = await fetch(API_BASE + getApiPrefix() + '/detalhes?anime=' + animeSlug);
+                    animeData = await resD.json();
+                    allEpisodes = animeData.episodios || [];
+                } catch(e) { console.warn('Detalhes não carregados:', e); }
+            }
+            var resP = await fetch(API_BASE + getApiPrefix() + '/player?link=' + encodeURIComponent(epLink));
+            var playerData = await resP.json();
+            if (playerData.erro) { mostrarErro('Erro ao carregar vídeo', playerData.erro); return; }
+            exibirPlayer(playerData);
+        } catch(e) {
+            console.error(e);
+            mostrarErro('Erro ao conectar', 'Verifique se o servidor está rodando na porta 3000.');
+        }
+    }
+
+    function exibirPlayer(data) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('conteudo').style.display = 'block';
+
+        document.getElementById('ep-title').textContent = epNome;
+
+        var video = document.getElementById('main-video');
+        var sources = data.sources || [];
+
+        if (sources.length === 0 && data.iframe) {
+            var wrapper = document.getElementById('video-wrapper');
+            wrapper.innerHTML = '<iframe src="' + data.iframe + '" allowfullscreen allow="autoplay; encrypted-media" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:16px 16px 0 0"></iframe>';
+        } else if (sources.length > 0) {
+            var best = sources[sources.length - 1];
+            video.src = best.url;
+            video.play().catch(function(){});
+
+            if (sources.length > 1) {
+                document.getElementById('quality-section').style.display = 'block';
+                var qBtns = document.getElementById('quality-btns');
+                sources.forEach(function(s, i) {
+                    var btn = document.createElement('button');
+                    btn.className = 'quality-btn' + (i === sources.length - 1 ? ' active' : '');
+                    btn.textContent = s.label || s.quality || ('Fonte ' + (i + 1));
+                    btn.addEventListener('click', function() {
+                        var ct = video.currentTime;
+                        video.src = s.url;
+                        video.currentTime = ct;
+                        video.play().catch(function(){});
+                        qBtns.querySelectorAll('.quality-btn').forEach(function(b){ b.classList.remove('active'); });
+                        btn.classList.add('active');
+                    });
+                    qBtns.appendChild(btn);
+                });
+            }
+        } else {
+            mostrarErro('Nenhuma fonte encontrada', 'O episódio pode estar indisponível.');
+            return;
+        }
+
+        if (animeData && animeData.sinopse) {
+            document.getElementById('sinopse').textContent = animeData.sinopse;
+        }
+
+        if (allEpisodes.length > 0) {
+            document.getElementById('btn-episodes').style.display = 'flex';
+            var list = document.getElementById('ep-modal-list');
+            allEpisodes.forEach(function(ep, i) {
+                var a = document.createElement('a');
+                a.className = 'ep-item' + (i === epIndex ? ' active' : '');
+                a.href = 'player-animes.html?anime=' + encodeURIComponent(animeSlug) +
+                    '&ep=' + encodeURIComponent(ep.link) +
+                    '&nome=' + encodeURIComponent(ep.nome || ('Episódio ' + (i + 1))) +
+                    '&idx=' + i;
+                a.innerHTML = '<span class="ep-item-num">' + (i + 1) + '</span>' +
+                    '<span>' + (ep.nome || ('Episódio ' + (i + 1))) + '</span>';
+                list.appendChild(a);
+            });
+        }
+
+        var btnNext = document.getElementById('btn-next');
+        if (epIndex < allEpisodes.length - 1 && allEpisodes[epIndex + 1]) {
+            var next = allEpisodes[epIndex + 1];
+            btnNext.href = 'player-animes.html?anime=' + encodeURIComponent(animeSlug) +
+                '&ep=' + encodeURIComponent(next.link) +
+                '&nome=' + encodeURIComponent(next.nome) +
+                '&idx=' + (epIndex + 1);
+        } else {
+            btnNext.classList.add('disabled');
+        }
+    }
+
+    function mostrarErro(titulo, msg) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('conteudo').style.display = 'block';
+        document.getElementById('conteudo').innerHTML =
+            '<div class="error-box" style="margin-top:60px"><h3>' + titulo + '</h3><p>' + msg + '</p></div>';
+    }
+
+    carregarPlayer();
+    </script>
+
+<script>
+// Custom dialog helper
+function showDrkDialog(opts) {
+  var iconClass = opts.type === 'error' ? 'error' : opts.type === 'warning' ? 'warning' : 'maintenance';
+  var iconEmoji = opts.type === 'error' ? '❌' : opts.type === 'warning' ? '⚠️' : '🔧';
+  var overlay = document.createElement('div');
+  overlay.className = 'drk-dialog-overlay';
+  overlay.innerHTML =
+    '<div class="drk-dialog">' +
+      '<div class="drk-dialog-icon ' + iconClass + '">' + iconEmoji + '</div>' +
+      '<div class="drk-dialog-title">' + (opts.title || 'Aviso') + '</div>' +
+      '<div class="drk-dialog-text">' + (opts.message || '') + '</div>' +
+      '<button class="drk-dialog-btn primary" id="drk-btn-primary">' + (opts.primaryBtn || 'OK') + '</button>' +
+      (opts.secondaryBtn ? '<button class="drk-dialog-btn secondary" id="drk-btn-secondary">' + opts.secondaryBtn + '</button>' : '') +
+    '</div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#drk-btn-primary').addEventListener('click', function(){ overlay.remove(); if(opts.onPrimary) opts.onPrimary(); });
+  var secBtn = overlay.querySelector('#drk-btn-secondary');
+  if(secBtn) secBtn.addEventListener('click', function(){ overlay.remove(); if(opts.onSecondary) opts.onSecondary(); });
+}
+</script>
+
+<script>
+// Add landscape exit button for returning to portrait view
+(function(){
+  var btn = document.createElement('button');
+  btn.className = 'landscape-exit-btn';
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>';
+  btn.title = 'Voltar';
+  btn.addEventListener('click', function(){ history.back(); });
+  document.body.appendChild(btn);
+})();
+
+// Override mostrarErro to use custom dialog
+var _origMostrarErro = typeof mostrarErro === 'function' ? mostrarErro : null;
+mostrarErro = function(titulo, msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('conteudo').style.display = 'block';
+  document.getElementById('conteudo').innerHTML = '';
+  showDrkDialog({
+    type: 'error',
+    title: titulo,
+    message: msg + '<br><br><span style="color:#555;font-size:12px;">Tente novamente ou troque de servidor.</span>',
+    primaryBtn: 'Tentar Novamente',
+    secondaryBtn: 'Voltar',
+    onPrimary: function(){ location.reload(); },
+    onSecondary: function(){ history.back(); }
+  });
+};
+</script>
+
+</body>
+</html>
