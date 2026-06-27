@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GuildaHub — Painel de Conexões WhatsApp</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:#0b0f1a; color:#e8eef7; min-height:100vh; }
+  header { padding:24px 16px; text-align:center; border-bottom:1px solid #1c2438; }
+  h1 { margin:0; font-size:22px; }
+  .sub { color:#8aa0c2; font-size:13px; margin-top:4px; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+  .form { background:#121a2d; border:1px solid #1f2a44; border-radius:12px; padding:16px; display:grid; gap:12px; grid-template-columns:1fr 1fr 1fr 1fr; }
+  .form label { display:flex; flex-direction:column; font-size:12px; color:#9fb3d4; gap:6px; }
+  .form input, .form select { background:#0b0f1a; color:#e8eef7; border:1px solid #2a3454; border-radius:8px; padding:10px; font-size:14px; }
+  .form button { background:#22c55e; border:0; color:#04220f; font-weight:700; border-radius:8px; padding:12px; cursor:pointer; grid-column:1/-1; }
+  .form button:disabled { opacity:.5; cursor:not-allowed; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); margin-top:20px; }
+  .slot { background:#121a2d; border:1px solid #1f2a44; border-radius:12px; padding:14px; min-height:280px; display:flex; flex-direction:column; }
+  .slot h3 { margin:0 0 8px; font-size:14px; color:#9fb3d4; display:flex; justify-content:space-between; }
+  .badge { font-size:11px; padding:3px 8px; border-radius:999px; background:#1f2a44; color:#9fb3d4; }
+  .badge.ok { background:#0f3d24; color:#7ee2a8; }
+  .badge.qr { background:#3d2d0f; color:#ffd166; }
+  .badge.err { background:#3d0f0f; color:#ff8585; }
+  .qr-wrap { flex:1; display:flex; align-items:center; justify-content:center; background:#0b0f1a; border-radius:8px; padding:10px; margin-top:8px; }
+  .qr-wrap img { max-width:100%; height:auto; image-rendering:pixelated; }
+  .pair { font-family:ui-monospace,Consolas,monospace; font-size:24px; letter-spacing:3px; text-align:center; color:#7ee2a8; }
+  .empty { color:#5a6c8c; font-size:13px; text-align:center; margin-top:auto; margin-bottom:auto; }
+  .row { display:flex; gap:6px; margin-top:8px; }
+  .row button { flex:1; background:transparent; border:1px solid #2a3454; color:#9fb3d4; padding:8px; border-radius:6px; cursor:pointer; font-size:12px; }
+  .row button:hover { background:#1c2540; color:#fff; }
+  .row button.danger { color:#ff8585; border-color:#5a1f1f; }
+  .msg { padding:10px; border-radius:8px; margin-top:10px; font-size:13px; }
+  .msg.ok { background:#0f3d24; color:#7ee2a8; }
+  .msg.err { background:#3d0f0f; color:#ff8585; }
+  @media (max-width:640px){ .form { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Painel de Conexões WhatsApp</h1>
+  <div class="sub">Multi-sessão · até 6 contas · comunicação via Firebase</div>
+</header>
+<main>
+  <form id="form" class="form">
+    <label>Chave de acesso
+      <input id="chave" type="password" placeholder="sua chave" required />
+    </label>
+    <label>Método
+      <select id="method">
+        <option value="qrcode">QR Code</option>
+        <option value="pareamento">Código de pareamento</option>
+      </select>
+    </label>
+    <label>Número (só pra pareamento)
+      <input id="phone" type="text" placeholder="55119XXXXXXXX" />
+    </label>
+    <label>&nbsp;
+      <span class="badge" id="cap">— / 6 slots</span>
+    </label>
+    <button id="submit" type="submit">Solicitar nova conexão</button>
+  </form>
+
+  <div id="msg"></div>
+
+  <div class="grid" id="grid"></div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyD4tBKUiCjfeCMFfaZ8ROs5F7UoQ25HrrI',
+  authDomain: 'animes-64408.firebaseapp.com',
+  databaseURL: 'https://animes-64408-default-rtdb.firebaseio.com',
+  projectId: 'animes-64408',
+  storageBucket: 'animes-64408.firebasestorage.app',
+  messagingSenderId: '887589860807',
+  appId: '1:887589860807:android:96c8ad7714f9d88de695e2',
+};
+
+const MAX = 6;
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+const $ = (id) => document.getElementById(id);
+const grid = $("grid"), cap = $("cap"), msg = $("msg");
+
+// renderiza 6 slots vazios
+const slots = {};
+for (let i = 1; i <= MAX; i++) {
+  const card = document.createElement("div");
+  card.className = "slot";
+  card.innerHTML = `
+    <h3>Slot ${i} <span class="badge" data-badge>livre</span></h3>
+    <div data-body class="empty">Nenhuma sessão neste slot.</div>
+    <div class="row">
+      <button data-reset>Reiniciar</button>
+      <button data-remove class="danger">Remover</button>
+    </div>`;
+  grid.appendChild(card);
+  slots[i] = card;
+
+  card.querySelector("[data-remove]").onclick = () => sendAction(i, "remover");
+  card.querySelector("[data-reset]").onclick  = () => {
+    const method = $("method").value;
+    const phone  = $("phone").value;
+    sendAction(i, "reset", method, phone);
+  };
+}
+
+function showMsg(text, type="ok") {
+  msg.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  setTimeout(() => { msg.innerHTML = ""; }, 4000);
+}
+
+async function sendAction(slot, action, method, phone) {
+  const chave = $("chave").value.trim();
+  if (!chave) { showMsg("Informe a chave de acesso.", "err"); return; }
+  await set(ref(db, `sessions/${slot}/request`), {
+    chave, action, method: method || $("method").value, phone: phone || $("phone").value || "",
+    ts: Date.now(),
+  });
+  showMsg(`Pedido enviado ao bot (slot ${slot}). Aguardando resposta…`);
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const chave = $("chave").value.trim();
+  if (!chave) return;
+  // pedido com slot = "new" usa action novo (bot escolhe slot livre)
+  await set(ref(db, `sessions/new/request`), {
+    chave, action: "novo",
+    method: $("method").value,
+    phone: $("phone").value || "",
+    ts: Date.now(),
+  });
+  showMsg("Pedido enviado. O bot vai alocar um slot livre.");
+});
+
+// escuta toda a árvore /sessions
+onValue(ref(db, "sessions"), (snap) => {
+  const val = snap.val() || {};
+  let used = 0;
+  for (let i = 1; i <= MAX; i++) {
+    const r = val[i]?.response;
+    const card = slots[i];
+    const badge = card.querySelector("[data-badge]");
+    const body  = card.querySelector("[data-body]");
+    if (!r) {
+      badge.textContent = "livre"; badge.className = "badge";
+      body.className = "empty"; body.textContent = "Nenhuma sessão neste slot.";
+      continue;
+    }
+    used++;
+    if (r.status === "qr" && r.qr) {
+      badge.textContent = "QR pronto"; badge.className = "badge qr";
+      body.className = "qr-wrap";
+      body.innerHTML = `<img alt="QR" src="${r.qr}" />`;
+    } else if (r.status === "pareamento" && r.pairingCode) {
+      badge.textContent = "Código"; badge.className = "badge qr";
+      body.className = "qr-wrap";
+      body.innerHTML = `<div class="pair">${r.pairingCode}</div>`;
+    } else if (r.status === "conectado") {
+      badge.textContent = "online"; badge.className = "badge ok";
+      body.className = "qr-wrap";
+      body.innerHTML = `<div style="text-align:center"><div style="font-size:28px">✅</div><div>${r.number || ""}</div></div>`;
+    } else if (r.status === "erro") {
+      badge.textContent = "erro"; badge.className = "badge err";
+      body.className = "qr-wrap";
+      body.innerHTML = `<div style="text-align:center;color:#ff8585">${r.error || "erro"}</div>`;
+    } else {
+      badge.textContent = r.status || "—"; badge.className = "badge";
+      body.className = "qr-wrap";
+      body.innerHTML = `<div class="empty">${r.status}…</div>`;
+    }
+  }
+  cap.textContent = `${used} / ${MAX} slots`;
+});
+</script>
+</body>
+</html>
