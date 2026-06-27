@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GuildaHub · Painel de Conexoes</title>
+<style>
+  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  body{margin:0;background:#0b0f17;color:#e6edf3;min-height:100vh;padding:24px}
+  h1{margin:0 0 4px;font-size:22px}
+  .sub{color:#8b98a9;font-size:13px;margin-bottom:20px}
+  .card{background:#121826;border:1px solid #1f2a3d;border-radius:12px;padding:18px;margin-bottom:16px}
+  label{display:block;font-size:12px;color:#8b98a9;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #2a3650;background:#0b0f17;color:#e6edf3;font-size:14px}
+  button{background:#22c55e;color:#0b0f17;border:0;padding:11px 18px;font-weight:700;border-radius:8px;cursor:pointer;font-size:14px}
+  button.secondary{background:#1f2a3d;color:#e6edf3}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row > *{flex:1;min-width:160px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .slot{background:#121826;border:1px solid #1f2a3d;border-radius:10px;padding:14px}
+  .slot h3{margin:0 0 6px;font-size:14px}
+  .status{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .s-online{background:#052e1a;color:#22c55e}
+  .s-awaiting_qr,.s-awaiting_code,.s-starting{background:#2d2510;color:#fbbf24}
+  .s-error,.s-disconnected{background:#2d1010;color:#ef4444}
+  .qr{margin-top:10px;background:#fff;padding:8px;border-radius:8px;text-align:center}
+  .qr img{max-width:100%;display:block;margin:0 auto}
+  .code{font:700 28px/1.3 ui-monospace,Menlo,monospace;letter-spacing:4px;text-align:center;background:#0b0f17;padding:14px;border-radius:8px;color:#22c55e}
+  .muted{color:#8b98a9;font-size:12px}
+  .err{color:#ef4444;font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+<h1>Painel de Conexoes WhatsApp</h1>
+<div class="sub">Solicite novas conexoes ao bot. Maximo: <span id="cap">…</span></div>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label>URL do bot</label>
+      <input id="api" placeholder="http://localhost:3333" />
+    </div>
+    <div>
+      <label>Chave</label>
+      <input id="key" type="password" placeholder="igor77" />
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>Metodo</label>
+      <select id="method">
+        <option value="qr">QR Code</option>
+        <option value="code">Codigo de pareamento</option>
+      </select>
+    </div>
+    <div>
+      <label>Numero (so para codigo)</label>
+      <input id="phone" placeholder="5511999998888" />
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button id="go">Solicitar conexao</button>
+    </div>
+  </div>
+  <div id="msg" class="muted" style="margin-top:10px"></div>
+</div>
+
+<div class="grid" id="slots"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const cfg = {
+    api: localStorage.getItem('gh_api') || location.origin,
+    key: localStorage.getItem('gh_key') || '',
+  };
+  $('api').value = cfg.api; $('key').value = cfg.key;
+  $('api').oninput = (e) => { cfg.api = e.target.value; localStorage.setItem('gh_api', cfg.api); };
+  $('key').oninput = (e) => { cfg.key = e.target.value; localStorage.setItem('gh_key', cfg.key); };
+
+  async function api(path, opts = {}) {
+    const url = cfg.api.replace(/\/$/, '') + path;
+    const r = await fetch(url, {
+      ...opts,
+      headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, ...(opts.headers || {}) },
+    });
+    let j = {}; try { j = await r.json(); } catch (_) {}
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    return j;
+  }
+
+  const tracked = new Set();
+
+  async function refreshStatus() {
+    try {
+      const s = await api('/api/status');
+      $('cap').textContent = `${s.used}/${s.max}`;
+      for (const sess of s.sessions) tracked.add(sess.slot);
+    } catch (e) {
+      $('cap').textContent = '?';
+    }
+  }
+
+  async function pollSlot(slot) {
+    try {
+      const st = await api('/api/conexao/' + slot);
+      renderSlot(st);
+      if (st.status === 'online' || st.status === 'error') return;
+      setTimeout(() => pollSlot(slot), 2000);
+    } catch (e) {
+      renderSlot({ slot, status: 'error', error: e.message });
+    }
+  }
+
+  function renderSlot(st) {
+    const id = 'slot-' + st.slot;
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id; el.className = 'slot';
+      $('slots').appendChild(el);
+    }
+    const status = st.status || 'unknown';
+    el.innerHTML = `
+      <h3>Slot ${st.slot} <span class="status s-${status}">${status}</span></h3>
+      ${st.phone ? `<div class="muted">+${st.phone}${st.name ? ' · ' + st.name : ''}</div>` : ''}
+      ${st.qrBase64 ? `<div class="qr"><img src="${st.qrBase64}" alt="QR"/></div>` : ''}
+      ${st.code ? `<div class="code">${st.code}</div>` : ''}
+      ${st.error ? `<div class="err">${st.error}</div>` : ''}
+      <div style="margin-top:10px"><button class="secondary" data-rm="${st.slot}">Desconectar</button></div>
+    `;
+    el.querySelector('[data-rm]').onclick = async (e) => {
+      const slot = e.target.dataset.rm;
+      if (!confirm('Desconectar slot ' + slot + '?')) return;
+      try { await api('/api/conexao/' + slot, { method: 'DELETE' }); el.remove(); refreshStatus(); }
+      catch (err) { alert(err.message); }
+    };
+  }
+
+  $('go').onclick = async () => {
+    $('msg').textContent = '';
+    const body = { method: $('method').value, phoneNumber: $('phone').value.replace(/\D/g, '') || null };
+    $('go').disabled = true;
+    try {
+      const r = await api('/api/conexao', { method: 'POST', body: JSON.stringify(body) });
+      $('msg').textContent = `slot ${r.slot} iniciado — aguardando ${body.method === 'qr' ? 'QR' : 'codigo'}…`;
+      tracked.add(r.slot);
+      pollSlot(r.slot);
+    } catch (e) {
+      $('msg').innerHTML = `<span class="err">${e.message}</span>`;
+    } finally { $('go').disabled = false; }
+  };
+
+  refreshStatus();
+  setInterval(refreshStatus, 5000);
+  // ao carregar, comeca a pollar sessoes ja existentes
+  (async () => { await refreshStatus(); for (const s of tracked) pollSlot(s); })();
+</script>
+</body>
+</html>
